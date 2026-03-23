@@ -1,12 +1,10 @@
 // Copyright 2021 GHA Test Team
 
-#include "TimedDoor.h"
-
-#include <chrono>
-#include <thread>
-
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "TimedDoor.h"
+#include <thread>
+#include <chrono>
 
 // Mock classes for interface testing (extended in tests.cpp per requirements)
 class MockDoor : public Door {
