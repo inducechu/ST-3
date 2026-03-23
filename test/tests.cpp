@@ -1,33 +1,35 @@
 // Copyright 2021 GHA Test Team
 
 #include "TimedDoor.h"
+
 #include <chrono>
+#include <thread>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <thread>
 
 // Mock classes for interface testing (extended in tests.cpp per requirements)
 class MockDoor : public Door {
-public:
+ public:
   MOCK_METHOD(void, lock, (), (override));
   MOCK_METHOD(void, unlock, (), (override));
   MOCK_METHOD(bool, isDoorOpened, (), (override));
 };
 
 class MockTimerClient : public TimerClient {
-public:
+ public:
   MOCK_METHOD(void, Timeout, (), (override));
 };
 
 class MockTimedDoor : public TimedDoor {
-public:
+ public:
   explicit MockTimedDoor(int timeout) : TimedDoor(timeout) {}
   MOCK_METHOD(bool, isDoorOpened, (), (override));
   MOCK_METHOD(void, throwState, (), (override));
 };
 
 class TimedDoorTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     door = new TimedDoor(0); // Zero timeout for fast tests
   }
