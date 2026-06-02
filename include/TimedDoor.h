@@ -1,7 +1,7 @@
 // Copyright 2021 GHA Test Team
 
-#ifndef INCLUDE_TIMEDDOOR_H_
-#define INCLUDE_TIMEDDOOR_H_
+#ifndef DOORKEEPER_TIMED_INTERFACE_H_
+#define DOORKEEPER_TIMED_INTERFACE_H_
 
 #include <stdexcept>
 #include <thread>
@@ -12,58 +12,59 @@ class Door;
 class TimedDoor;
 
 class DoorTimeoutException : public std::runtime_error {
- public:
-  explicit DoorTimeoutException(const char *msg) : std::runtime_error(msg) {}
+public:
+  explicit DoorTimeoutException(const char *error_msg)
+      : std::runtime_error(error_msg) {}
 };
 
 class TimerClient {
- public:
+public:
   virtual void Timeout() = 0;
 };
 
 class Door {
- public:
+public:
   virtual void lock() = 0;
   virtual void unlock() = 0;
   virtual bool isDoorOpened() = 0;
 };
 
 class DoorTimerAdapter : public TimerClient {
- private:
-  TimedDoor &door;
+private:
+  TimedDoor &associatedDoor;
 
- public:
-  explicit DoorTimerAdapter(TimedDoor &);
+public:
+  explicit DoorTimerAdapter(TimedDoor &targetDoor);
   void Timeout();
 };
 
 class TimedDoor : public Door {
- private:
-  DoorTimerAdapter *adapter;
-  Timer *timer;
-  std::thread timerThread;
-  int iTimeout;
-  bool isOpened;
+private:
+  DoorTimerAdapter *doorAdapter;
+  Timer *internalTimer;
+  std::thread workerThread;
+  int durationLimit;
+  bool openedFlag;
 
- public:
-  explicit TimedDoor(int);
+public:
+  explicit TimedDoor(int timeoutSec);
   ~TimedDoor();
   bool isDoorOpened() override;
   void unlock() override;
   void lock() override;
   int getTimeOut() const;
   virtual void throwState();
-  Timer *getTimer() const { return timer; }
+  Timer *getTimer() const { return internalTimer; }
   void triggerTimeoutForTest();
-  void registerTimerForTest(int timeout, TimerClient *client);
+  void registerTimerForTest(int timeoutVal, TimerClient *clientPtr);
 };
 
 class Timer {
-  TimerClient *client;
-  void sleep(int);
+  TimerClient *registeredClient;
+  void sleep(int seconds);
 
- public:
-  void tregister(int, TimerClient *);
+public:
+  void tregister(int timeoutVal, TimerClient *clientPtr);
 };
 
-#endif // INCLUDE_TIMEDDOOR_H_
+#endif // DOORKEEPER_TIMED_INTERFACE_H_

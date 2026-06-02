@@ -4,65 +4,67 @@
 #include <chrono>
 #include <thread>
 
-DoorTimerAdapter::DoorTimerAdapter(TimedDoor &d) : door(d) {}
+DoorTimerAdapter::DoorTimerAdapter(TimedDoor &targetDoor)
+    : associatedDoor(targetDoor) {}
 
 void DoorTimerAdapter::Timeout() {
-  if (door.isDoorOpened()) {
-    door.throwState();
+  if (associatedDoor.isDoorOpened()) {
+    associatedDoor.throwState();
   }
 }
 
-TimedDoor::TimedDoor(int timeout) : iTimeout(timeout), isOpened(false) {
-  timer = new Timer();
-  adapter = new DoorTimerAdapter(*this);
+TimedDoor::TimedDoor(int timeoutSec)
+    : durationLimit(timeoutSec), openedFlag(false) {
+  internalTimer = new Timer();
+  doorAdapter = new DoorTimerAdapter(*this);
 }
 
 TimedDoor::~TimedDoor() {
-  if (timerThread.joinable()) {
-    timerThread.join();
+  if (workerThread.joinable()) {
+    workerThread.join();
   }
-  delete adapter;
-  delete timer;
+  delete doorAdapter;
+  delete internalTimer;
 }
 
-bool TimedDoor::isDoorOpened() { return isOpened; }
+bool TimedDoor::isDoorOpened() { return openedFlag; }
 
 void TimedDoor::unlock() {
-  isOpened = true;
-  if (timerThread.joinable()) {
-    timerThread.join();
+  openedFlag = true;
+  if (workerThread.joinable()) {
+    workerThread.join();
   }
-  timerThread = std::thread([this]() {
+  workerThread = std::thread([this]() {
     try {
-      timer->tregister(iTimeout, adapter);
+      internalTimer->tregister(durationLimit, doorAdapter);
     } catch (const DoorTimeoutException &) {
       // Exception from timer callback - door was left open
     }
   });
 }
 
-void TimedDoor::lock() { isOpened = false; }
+void TimedDoor::lock() { openedFlag = false; }
 
-int TimedDoor::getTimeOut() const { return iTimeout; }
+int TimedDoor::getTimeOut() const { return durationLimit; }
 
 void TimedDoor::throwState() {
-  throw DoorTimeoutException("Door remained open past timeout");
+  throw DoorTimeoutException("Security violation: door open limit exceeded");
 }
 
-void TimedDoor::triggerTimeoutForTest() { adapter->Timeout(); }
+void TimedDoor::triggerTimeoutForTest() { doorAdapter->Timeout(); }
 
-void TimedDoor::registerTimerForTest(int timeout, TimerClient *client) {
-  timer->tregister(timeout, client);
+void TimedDoor::registerTimerForTest(int timeoutVal, TimerClient *clientPtr) {
+  internalTimer->tregister(timeoutVal, clientPtr);
 }
 
 void Timer::sleep(int seconds) {
   std::this_thread::sleep_for(std::chrono::seconds(seconds));
 }
 
-void Timer::tregister(int timeout, TimerClient *c) {
-  client = c;
-  sleep(timeout);
-  if (client) {
-    client->Timeout();
+void Timer::tregister(int timeoutVal, TimerClient *clientPtr) {
+  registeredClient = clientPtr;
+  sleep(timeoutVal);
+  if (registeredClient) {
+    registeredClient->Timeout();
   }
 }
