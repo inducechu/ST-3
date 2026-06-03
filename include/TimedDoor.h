@@ -1,7 +1,7 @@
 // Copyright 2021 GHA Test Team
 
-#ifndef DOORKEEPER_TIMED_INTERFACE_H_
-#define DOORKEEPER_TIMED_INTERFACE_H_
+#ifndef INCLUDE_TIMEDDOOR_H_
+#define INCLUDE_TIMEDDOOR_H_
 
 #include <stdexcept>
 #include <thread>
@@ -12,41 +12,41 @@ class Door;
 class TimedDoor;
 
 class DoorTimeoutException : public std::runtime_error {
-public:
+ public:
   explicit DoorTimeoutException(const char *error_msg)
       : std::runtime_error(error_msg) {}
 };
 
 class TimerClient {
-public:
+ public:
   virtual void Timeout() = 0;
 };
 
 class Door {
-public:
+ public:
   virtual void lock() = 0;
   virtual void unlock() = 0;
   virtual bool isDoorOpened() = 0;
 };
 
 class DoorTimerAdapter : public TimerClient {
-private:
+ private:
   TimedDoor &associatedDoor;
 
-public:
+ public:
   explicit DoorTimerAdapter(TimedDoor &targetDoor);
   void Timeout();
 };
 
 class TimedDoor : public Door {
-private:
+ private:
   DoorTimerAdapter *doorAdapter;
   Timer *internalTimer;
   std::thread workerThread;
   int durationLimit;
   bool openedFlag;
 
-public:
+ public:
   explicit TimedDoor(int timeoutSec);
   ~TimedDoor();
   bool isDoorOpened() override;
@@ -63,8 +63,8 @@ class Timer {
   TimerClient *registeredClient;
   void sleep(int seconds);
 
-public:
+ public:
   void tregister(int timeoutVal, TimerClient *clientPtr);
 };
 
-#endif // DOORKEEPER_TIMED_INTERFACE_H_
+#endif  // INCLUDE_TIMEDDOOR_H_

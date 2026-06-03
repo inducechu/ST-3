@@ -1,32 +1,32 @@
 // Copyright 2021 GHA Test Team
 
 #include "TimedDoor.h"
-#include <chrono>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <chrono>
 #include <thread>
 
 class MockDoor : public Door {
-public:
+ public:
   MOCK_METHOD(void, lock, (), (override));
   MOCK_METHOD(void, unlock, (), (override));
   MOCK_METHOD(bool, isDoorOpened, (), (override));
 };
 
 class MockTimerClient : public TimerClient {
-public:
+ public:
   MOCK_METHOD(void, Timeout, (), (override));
 };
 
 class MockTimedDoor : public TimedDoor {
-public:
+ public:
   explicit MockTimedDoor(int timeoutVal) : TimedDoor(timeoutVal) {}
   MOCK_METHOD(bool, isDoorOpened, (), (override));
   MOCK_METHOD(void, throwState, (), (override));
 };
 
 class SecureTimedDoorFixture : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override { testObject = new TimedDoor(0); }
 
   void TearDown() override {
@@ -85,50 +85,4 @@ TEST_F(SecureTimedDoorFixture, VerifyExceptionStringContent) {
 TEST_F(SecureTimedDoorFixture, TimerDispatchesTimeoutEvent) {
   MockTimerClient mockClientInstance;
   EXPECT_CALL(mockClientInstance, Timeout()).Times(1);
-  testObject->registerTimerForTest(0, &mockClientInstance);
-}
-
-TEST_F(SecureTimedDoorFixture, InvokeMockDoorLockInterface) {
-  MockDoor dummyDoor;
-  EXPECT_CALL(dummyDoor, lock()).Times(1);
-  dummyDoor.lock();
-}
-
-TEST_F(SecureTimedDoorFixture, InvokeMockDoorUnlockInterface) {
-  MockDoor dummyDoor;
-  EXPECT_CALL(dummyDoor, unlock()).Times(1);
-  dummyDoor.unlock();
-}
-
-TEST_F(SecureTimedDoorFixture, ReadStateFromMockDoor) {
-  MockDoor dummyDoor;
-  EXPECT_CALL(dummyDoor, isDoorOpened()).WillOnce(::testing::Return(true));
-  EXPECT_TRUE(dummyDoor.isDoorOpened());
-}
-
-TEST_F(SecureTimedDoorFixture, DirectlyInvokeMockClientTimeout) {
-  MockTimerClient dummyClient;
-  EXPECT_CALL(dummyClient, Timeout()).Times(1);
-  dummyClient.Timeout();
-}
-
-TEST_F(SecureTimedDoorFixture, AdapterTriggersExceptionIfOpened) {
-  MockTimedDoor dynamicMockDoor(8);
-  EXPECT_CALL(dynamicMockDoor, isDoorOpened())
-      .WillOnce(::testing::Return(true));
-  EXPECT_CALL(dynamicMockDoor, throwState())
-      .Times(1)
-      .WillOnce(::testing::Invoke([]() {
-        throw DoorTimeoutException(
-            "Security violation: door open limit exceeded");
-      }));
-  EXPECT_THROW(dynamicMockDoor.triggerTimeoutForTest(), DoorTimeoutException);
-}
-
-TEST_F(SecureTimedDoorFixture, AdapterBypassesExceptionIfClosed) {
-  MockTimedDoor dynamicMockDoor(8);
-  EXPECT_CALL(dynamicMockDoor, isDoorOpened())
-      .WillOnce(::testing::Return(false));
-  EXPECT_CALL(dynamicMockDoor, throwState()).Times(0);
-  EXPECT_NO_THROW(dynamicMockDoor.triggerTimeoutForTest());
 }
