@@ -85,4 +85,5 @@ TEST_F(SecureTimedDoorFixture, VerifyExceptionStringContent) {
 TEST_F(SecureTimedDoorFixture, TimerDispatchesTimeoutEvent) {
   MockTimerClient mockClientInstance;
   EXPECT_CALL(mockClientInstance, Timeout()).Times(1);
+  testObject->registerTimerForTest(0, &mockClientInstance);
 }
