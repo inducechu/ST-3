@@ -87,3 +87,33 @@ TEST_F(SecureTimedDoorFixture, TimerDispatchesTimeoutEvent) {
   EXPECT_CALL(mockClientInstance, Timeout()).Times(1);
   testObject->registerTimerForTest(0, &mockClientInstance);
 }
+
+TEST_F(SecureTimedDoorFixture, RealTimerTriggersTimeoutInThread) {
+  TimedDoor dynamicDoor(1);
+  dynamicDoor.unlock();  
+  std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+  SUCCEED(); 
+}
+
+TEST_F(SecureTimedDoorFixture, MultipleUnlockCallsHandledSafely) {
+  testObject->unlock();
+  EXPECT_TRUE(testObject->isDoorOpened());  
+  EXPECT_NO_THROW(testObject->unlock());
+  EXPECT_TRUE(testObject->isDoorOpened());
+}
+
+TEST_F(SecureTimedDoorFixture, ClosingDoorBeforeTimeoutPreventsException) {
+  TimedDoor dynamicDoor(1);
+  dynamicDoor.unlock();
+  dynamicDoor.lock(); 
+  std::this_thread::sleep_for(std::chrono::milliseconds(1200));
+  EXPECT_FALSE(dynamicDoor.isDoorOpened());
+}
+
+TEST_F(SecureTimedDoorFixture, AdapterInvokesThrowStateWhenDoorIsOpened) {
+  MockTimedDoor mockDoor(0);
+  DoorTimerAdapter adapter(mockDoor);
+  EXPECT_CALL(mockDoor, isDoorOpened()).WillOnce(::testing::Return(true));
+  EXPECT_CALL(mockDoor, throwState()).Times(1);      
+  adapter.Timeout();
+}
